@@ -33,11 +33,12 @@ if (cluster.isMaster) {
     app.use(express.json())
 
     app.get('/', (request, response) => {
+        asdasdasd
         response.send({ ok: 'ok', worker: process.pid })
     })
 
     app.get('/todos', (request, response) => {
-        response.json({ todos: todoList })
+        response.json({ worker: process.pid, todos: todoList })
     })
 
     app.post('/todo', (request, response) => {
@@ -53,5 +54,4 @@ if (cluster.isMaster) {
     app.listen(port, () => {
         console.log(`[Server ${process.pid}] App listening at localhost: ${port}`)
     })
-
 }
