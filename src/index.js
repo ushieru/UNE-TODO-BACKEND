@@ -8,6 +8,7 @@ const todoList = [{
     task: 'Tarea Prueba'
 }]
 
+
 app.use(cors({
     origin: '*'
 }))
