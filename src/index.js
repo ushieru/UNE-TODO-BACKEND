@@ -33,7 +33,6 @@ if (cluster.isMaster) {
     app.use(express.json())
 
     app.get('/', (request, response) => {
-        asdasdasd
         response.send({ ok: 'ok', worker: process.pid })
     })
 
@@ -47,6 +46,18 @@ if (cluster.isMaster) {
         todoList.push({
             id: Date.now(),
             task: task
+        })
+        response.json({ ok: 'ok' });
+    })
+
+    app.post('/todos', (request, response) => {
+        const { taskArray } = request.body;
+        if (!taskArray) response.status(400).json({ error: 'No agregaste una tarea' });
+        taskArray.forEach(task => {
+            todoList.push({
+                id: Date.now(),
+                task: task
+            })
         })
         response.json({ ok: 'ok' });
     })
