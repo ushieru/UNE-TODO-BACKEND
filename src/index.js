@@ -1,37 +1,57 @@
 const express = require('express')
 const cors = require('cors')
-const app = express()
 const port = 3300
+const cluster = require('cluster')
+const totalCPUS = require('os').cpus().length
 
 const todoList = [{
     id: Date.now(),
     task: 'Tarea Prueba'
 }]
 
-app.use(cors({
-    origin: '*'
-}))
+if (cluster.isMaster) {
+    console.log(`Number of CPUs is ${totalCPUS}`)
+    console.log(`Master ${process.pid} is running`)
 
-app.use(express.json())
+    // Fork workers
+    for (let index = 0; index < totalCPUS; index++) {
+        cluster.fork();
+    }
 
-app.get('/', (request, response) => {
-    response.send({ ok: 'ok' })
-})
-
-app.get('/todos', (request, response) => {
-    response.json({ todos: todoList })
-})
-
-app.post('/todo', (request, response) => {
-    const { task } = request.body;
-    if (!task) response.status(400).json({ error: 'No agregaste una tarea' });
-    todoList.push({
-        id: Date.now(),
-        task: task
+    cluster.on('exit', (worker, code, signal) => {
+        console.log(`Worker ${worker.process.pid} died`)
+        console.log(`Let's fork another worker`)
+        cluster.fork()
     })
-    response.json({ ok: 'ok' });
-})
+} else {
+    const app = express()
 
-app.listen(port, () => {
-    console.log('[Server] App listening at localhost:' + port)
-})
+    app.use(cors({
+        origin: '*'
+    }))
+
+    app.use(express.json())
+
+    app.get('/', (request, response) => {
+        response.send({ ok: 'ok', worker: process.pid })
+    })
+
+    app.get('/todos', (request, response) => {
+        response.json({ todos: todoList })
+    })
+
+    app.post('/todo', (request, response) => {
+        const { task } = request.body;
+        if (!task) response.status(400).json({ error: 'No agregaste una tarea' });
+        todoList.push({
+            id: Date.now(),
+            task: task
+        })
+        response.json({ ok: 'ok' });
+    })
+
+    app.listen(port, () => {
+        console.log(`[Server ${process.pid}] App listening at localhost: ${port}`)
+    })
+
+}
