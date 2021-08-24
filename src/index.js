@@ -3,11 +3,30 @@ const cors = require('cors')
 const port = 3300
 const cluster = require('cluster')
 const totalCPUS = require('os').cpus().length
+const fs = require('fs')
+const path = require('path')
+const PATH = path.join(__dirname, "database.json")
 
-const todoList = [{
-    id: Date.now(),
-    task: 'Tarea Prueba'
-}]
+const addTask = (task) => {
+    if (fs.existsSync(PATH)) {
+        const content = fs.readFileSync(PATH)
+        let json = JSON.parse(content)
+        json.push(task)
+        fs.writeFileSync(PATH, JSON.stringify(json))
+    } else {
+        fs.writeFileSync(PATH, '[]')
+        addTask(task)
+    }
+}
+
+const readTask = () => {
+    if (fs.existsSync(PATH)) {
+        const content = fs.readFileSync(PATH)
+        return JSON.parse(content)
+    } else {
+        return []
+    }
+}
 
 if (cluster.isMaster) {
     console.log(`Number of CPUs is ${totalCPUS}`)
@@ -37,13 +56,13 @@ if (cluster.isMaster) {
     })
 
     app.get('/todos', (request, response) => {
-        response.json({ worker: process.pid, todos: todoList })
+        response.json({ worker: process.pid, todos: readTask() })
     })
 
     app.post('/todo', (request, response) => {
         const { task } = request.body;
         if (!task) response.status(400).json({ error: 'No agregaste una tarea' });
-        todoList.push({
+        addTask({
             id: Date.now(),
             task: task
         })
@@ -54,7 +73,7 @@ if (cluster.isMaster) {
         const { taskArray } = request.body;
         if (!taskArray) response.status(400).json({ error: 'No agregaste una tarea' });
         taskArray.forEach(task => {
-            todoList.push({
+            addTask({
                 id: Date.now(),
                 task: task
             })
